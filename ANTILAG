@@ -14,7 +14,7 @@ gui.IgnoreGuiInset = true
 -- frame pembungkus draggable
 local frame = Instance.new("Frame", gui)
 frame.Size = UDim2.new(0, 150, 0, 110)
-frame.Position = UDim2.new(0, 10, 0, 60)
+frame.Position = UDim2.new(0, 10, 0, 200)
 frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 frame.BorderSizePixel = 1
 frame.Active = true
