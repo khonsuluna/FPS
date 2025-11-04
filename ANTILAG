@@ -1,4 +1,4 @@
---// HELL TURBO MODE + POTATO V3 — DRAG EDITION (3 Buttons)
+--// === HELL TURBO MODE v2 ===
 local GUI_NAME = "HellTurboGui"
 
 if game.CoreGui:FindFirstChild(GUI_NAME) then
@@ -6,166 +6,100 @@ if game.CoreGui:FindFirstChild(GUI_NAME) then
 end
 
 local gui = Instance.new("ScreenGui")
-gui.Parent = game.CoreGui
 gui.Name = GUI_NAME
+gui.Parent = game.CoreGui
 gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
 
--- frame pembungkus draggable
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 150, 0, 110)
-frame.Position = UDim2.new(0, 10, 0, 200)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-frame.BorderSizePixel = 1
+frame.Size = UDim2.new(0, 200, 0, 180)
+frame.Position = UDim2.new(0.5, -100, 0.7, -90)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.Active = true
-frame.Draggable = true -- MAGIC INI ☕
+frame.Draggable = true
+frame.BackgroundTransparency = 0.2
 
-local layout = Instance.new("UIListLayout", frame)
-layout.Padding = UDim.new(0,6)
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-layout.VerticalAlignment = Enum.VerticalAlignment.Top
+local UICorner = Instance.new("UICorner", frame)
+UICorner.CornerRadius = UDim.new(0, 10)
 
-local function makeButton(text)
+local UIListLayout = Instance.new("UIListLayout", frame)
+UIListLayout.Padding = UDim.new(0, 6)
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+
+local function makeButton(txt)
     local b = Instance.new("TextButton", frame)
-    b.Size = UDim2.new(1, -8, 0, 28)
-    b.BackgroundColor3 = Color3.fromRGB(35,35,35)
-    b.TextColor3 = Color3.fromRGB(255,255,255)
-    b.Text = text
+    b.Size = UDim2.new(0, 160, 0, 40)
+    b.Text = txt
+    b.BackgroundColor3 = Color3.fromRGB(240, 90, 60)
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.TextScaled = true
     b.AutoButtonColor = false
-    b.Font = Enum.Font.SourceSansBold
+    local cr = Instance.new("UICorner", b)
+    cr.CornerRadius = UDim.new(0, 8)
     return b
 end
 
-local turboBtn   = makeButton("TURBO OFF")
-local renderBtn  = makeButton("3D ON")
-local potatoBtn  = makeButton("POTATO V3 OFF")
-
-local ultra = false
-local render = true
+-- states
+local turbo = false
 local potato = false
+local hideall = false
 
-local RunService = game:GetService("RunService")
-local SoundService = game:GetService("SoundService")
-local Players = game:GetService("Players")
+--// SERVICES
+local Lighting = game.Lighting
+local Players = game.Players
 local LocalPlayer = Players.LocalPlayer
 
-local SAFE = {
-    QualityLevel = (pcall(function() return settings().Rendering.QualityLevel end) and settings().Rendering.QualityLevel) or Enum.QualityLevel.Automatic,
-    Brightness = game.Lighting and game.Lighting.Brightness or 2,
-    Ambient = game.Lighting and game.Lighting.Ambient or Color3.new(0.5,0.5,0.5),
-    OutdoorAmbient = game.Lighting and game.Lighting.OutdoorAmbient or Color3.new(0.5,0.5,0.5),
-    FOV = workspace.CurrentCamera and workspace.CurrentCamera.FieldOfView or 70,
-    SoundVolume = SoundService.Volume
-}
-
-local function lw(fn)
-    for _, v in ipairs(workspace:GetDescendants()) do pcall(function() fn(v) end) end
-end
-
-local function hidePlayers(state)
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character then
-            for _, part in ipairs(plr.Character:GetDescendants()) do
-                if part:IsA("BasePart") or part:IsA("Accessory") or part:IsA("Hat") then
-                    part.LocalTransparencyModifier = state and 1 or 0
-                end
-            end
-        end
-    end
-end
-
-local function killAcc(state)
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr.Character then
-            for _, v in ipairs(plr.Character:GetDescendants()) do
-                if v:IsA("Accessory") or v:IsA("Hat") or v:IsA("MeshPart") then
-                    v.Transparency = state and 1 or 0
-                end
-            end
-        end
-    end
-end
-
-local function grassOff(state)
-    pcall(function()
-        if workspace:FindFirstChild("Terrain") then
-            workspace.Terrain.Decoration = not state
-        end
-    end)
-end
-
-local function killAnim(state)
-    local lp = LocalPlayer
-    if lp and lp.Character then
-        local h = lp.Character:FindFirstChildOfClass("Humanoid")
-        if h and state then
-            for _, t in ipairs(h:GetPlayingAnimationTracks()) do pcall(function() t:Stop() end) end
-        end
-    end
-end
-
-local function distOff(state)
-    if workspace.CurrentCamera then
-        workspace.CurrentCamera.MaxZoomDistance = state and 400 or 8
-    end
-end
-
-local function applyUltra(state)
-    if state then
-        pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 end)
-        lw(function(v)
-            if v:IsA("BasePart") then v.Material = Enum.Material.SmoothPlastic; v.Reflectance = 0 end
-            if v:IsA("Decal") or v:IsA("Texture") then v.Transparency = 1 end
-            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") then v.Enabled = false end
-            if v:IsA("MeshPart") then v.RenderFidelity = Enum.RenderFidelity.Performance; v.TextureID = "" end
-            if v:IsA("SurfaceAppearance") then v:Destroy() end
-        end)
-        local L = game.Lighting
-        if L then
-            L.GlobalShadows = false
-            L.Ambient = Color3.new(1,1,1)
-            L.OutdoorAmbient = Color3.new(1,1,1)
-            L.Brightness = 1
-            L.FogEnd = 9e9
-        end
-        pcall(function() workspace.CurrentCamera.FieldOfView = 70 end)
-        pcall(function() setfpscap(9999) end)
-    else
-        pcall(function() settings().Rendering.QualityLevel = SAFE.QualityLevel end)
-        if game.Lighting then
-            game.Lighting.Brightness = SAFE.Brightness
-            game.Lighting.Ambient = SAFE.Ambient
-            game.Lighting.OutdoorAmbient = SAFE.OutdoorAmbient
-        end
-        pcall(function() workspace.CurrentCamera.FieldOfView = SAFE.FOV end)
-    end
-end
-
--- POTATO placeholder (isi script kamu)
-local potatoLoopThread = nil
-local function applyPotato(state)
-    -- masukkan Potatov3 mu disini
-end
+--// === BUTTON: TURBO MODE ===
+local turboBtn = makeButton("Turbo Mode")
 
 turboBtn.MouseButton1Click:Connect(function()
-    ultra = not ultra
-    turboBtn.Text = ultra and "TURBO ON" or "TURBO OFF"
-    applyUltra(ultra)
-    hidePlayers(ultra)
-    killAcc(ultra)
-    killAnim(ultra)
-    grassOff(ultra)
-    distOff(not ultra)
+    turbo = not turbo
+    turboBtn.BackgroundColor3 = turbo and Color3.fromRGB(60, 200, 90) or Color3.fromRGB(240, 90, 60)
+
+    if turbo then
+        -- effect on
+        Lighting.GlobalShadows = false
+        Lighting.Ambient = Color3.new(1,1,1)
+        for _,v in ipairs(workspace:GetDescendants()) do
+            if v:IsA("ParticleEmitter") or v:IsA("Beam") then v.Enabled = false end
+        end
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+    else
+        -- effect off
+        Lighting.GlobalShadows = true
+        Lighting.Ambient = Color3.new(.5,.5,.5)
+        for _,v in ipairs(workspace:GetDescendants()) do
+            if v:IsA("ParticleEmitter") or v:IsA("Beam") then v.Enabled = true end
+        end
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
+    end
 end)
 
-renderBtn.MouseButton1Click:Connect(function()
-    render = not render
-    renderBtn.Text = render and "3D ON" or "3D OFF"
-    RunService:Set3dRenderingEnabled(render)
-end)
+--// === BUTTON: POTATO MODE ===
+local potatoBtn = makeButton("Potato Mode")
 
 potatoBtn.MouseButton1Click:Connect(function()
     potato = not potato
-    potatoBtn.Text = potato and "POTATO V3 ON" or "POTATO V3 OFF"
-    applyPotato(potato)
+    potatoBtn.BackgroundColor3 = potato and Color3.fromRGB(60, 200, 90) or Color3.fromRGB(240, 90, 60)
+
+    settings().Rendering.MeshPartDetailLevel = potato and Enum.MeshPartDetailLevel.Level00 or Enum.MeshPartDetailLevel.Level04
+    workspace.Terrain.WaterWaveSize = potato and 0 or 0.15
+    workspace.Terrain.WaterReflectance = potato and 0 or .5
+end)
+
+--// === BUTTON: HIDE PLAYER & ACCESSORIES ===
+local hideBtn = makeButton("Hide Player")
+
+hideBtn.MouseButton1Click:Connect(function()
+    hideall = not hideall
+    hideBtn.BackgroundColor3 = hideall and Color3.fromRGB(60, 200, 90) or Color3.fromRGB(240, 90, 60)
+
+    local char = LocalPlayer.Character
+    if not char then return end
+
+    for _,v in pairs(char:GetDescendants()) do
+        if v:IsA("BasePart") or v:IsA("Accessory") or v:IsA("Decal") then
+            v.LocalTransparencyModifier = hideall and 1 or 0
+        end
+    end
 end)
