@@ -1,0 +1,208 @@
+local GUI_NAME = "HellTurboGui"
+
+if game.CoreGui:FindFirstChild(GUI_NAME) then
+    game.CoreGui:FindFirstChild(GUI_NAME):Destroy()
+end
+
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = GUI_NAME
+gui.ResetOnSpawn = false
+
+local function makeButton(text, y)
+    local b = Instance.new("TextButton", gui)
+    b.Size = UDim2.new(0, 120, 0, 25)
+    b.Position = UDim2.new(0, 10, 0, y)
+    b.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    b.TextColor3 = Color3.fromRGB(255,255,255)
+    b.Text = text
+    return b
+end
+
+local turboBtn   = makeButton("TURBO OFF", 80)
+local renderBtn  = makeButton("3D ON",     110)
+local playersBtn = makeButton("PLAYERS ON",140)
+local accBtn     = makeButton("ACC ON",    170)
+local grassBtn   = makeButton("GRASS ON",  200)
+local animBtn    = makeButton("ANIM ON",   230)
+local distBtn    = makeButton("DIST ON",   260)
+
+local ultra = false
+local render = true
+local players = true
+local acc = true
+local anim = true
+local dist = true
+local grass = true
+
+-- ULTRA TURBO
+local function applyUltra(state)
+    if state then
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+
+        for _, v in ipairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.Material = Enum.Material.SmoothPlastic
+                v.Reflectance = 0
+            end
+            if v:IsA("Decal") or v:IsA("Texture") then
+                v.Transparency = 1
+            end
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") then
+                v.Enabled = false
+            end
+        end
+
+        local L = game.Lighting
+        if L then
+            L.GlobalShadows = false
+            L.Ambient = Color3.new(1,1,1)
+            L.OutdoorAmbient = Color3.new(1,1,1)
+            L.Brightness = 1
+            L.FogEnd = 9e9
+            L.EnvironmentDiffuseScale = 0
+            L.EnvironmentSpecularScale = 0
+        end
+
+        workspace.CurrentCamera.FieldOfView = 70
+        pcall(function() setfpscap(9999) end)
+
+    else
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
+    end
+end
+
+-- HIDE PLAYERS
+local function hidePlayers(state)
+    for _, plr in ipairs(game.Players:GetPlayers()) do
+        if plr ~= game.Players.LocalPlayer and plr.Character then
+            for _, part in ipairs(plr.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.LocalTransparencyModifier = state and 1 or 0
+                end
+            end
+        end
+    end
+end
+
+-- KILL ACCESSORIES
+local function killAcc(state)
+    for _, plr in ipairs(game.Players:GetPlayers()) do
+        if plr.Character then
+            for _, v in ipairs(plr.Character:GetDescendants()) do
+                if v:IsA("Accessory") or v:IsA("MeshPart") then
+                    v.Transparency = state and 1 or 0
+                end
+            end
+        end
+    end
+end
+
+-- REMOVE GRASS (terrain detail)
+local function grassOff(state)
+    workspace.Terrain.Decoration = not state
+end
+
+-- ANIMATION KILL
+local function killAnim(state)
+    local lp = game.Players.LocalPlayer
+    if lp.Character then
+        for _, t in ipairs(lp.Character:FindFirstChildOfClass("Humanoid"):GetPlayingAnimationTracks()) do
+            if state then t:Stop() end
+        end
+    end
+end
+
+-- RENDER DISTANCE
+local function distOff(state)
+    workspace.CurrentCamera.MaxZoomDistance = state and 400 or 8
+end
+
+-- BUTTON Events
+turboBtn.MouseButton1Click:Connect(function()
+    ultra = not ultra
+    turboBtn.Text = ultra and "TURBO ON" or "TURBO OFF"
+    applyUltra(ultra)
+end)
+
+-- ✅ UPDATED WHITE MODE BUTTON
+renderBtn.MouseButton1Click:Connect(function()
+    render = not render
+    renderBtn.Text = render and "3D ON" or "3D OFF"
+
+    local RS = game:GetService("RunService")
+    local sound = game:GetService("SoundService")
+    local cam = workspace.CurrentCamera
+    local L = game.Lighting
+
+    RS:Set3dRenderingEnabled(render)
+
+    if not render then
+        -- matiin suara
+        sound.Volume = 0
+
+        -- GPU load down
+        if cam then
+            cam.FieldOfView = 40
+        end
+
+        -- brightness nurun biar ga nyilauin
+        if L then
+            L.Brightness = 0.5
+        end
+
+        -- overlay putih lembut
+        if not gui:FindFirstChild("WhiteOverlay") then
+            local w = Instance.new("Frame", gui)
+            w.Name = "WhiteOverlay"
+            w.BackgroundColor3 = Color3.new(1,1,1)
+            w.BackgroundTransparency = 0.05
+            w.Size = UDim2.new(1,0,1,0)
+            w.ZIndex = 9999
+        end
+
+    else
+        -- balikin suara
+        sound.Volume = 1
+
+        -- FOV normal
+        if cam then cam.FieldOfView = 70 end
+
+        -- brightness normal
+        if L then L.Brightness = 2 end
+
+        -- hapus overlay
+        if gui:FindFirstChild("WhiteOverlay") then
+            gui.WhiteOverlay:Destroy()
+        end
+    end
+end)
+
+playersBtn.MouseButton1Click:Connect(function()
+    players = not players
+    playersBtn.Text = players and "PLAYERS ON" or "PLAYERS OFF"
+    hidePlayers(not players)
+end)
+
+accBtn.MouseButton1Click:Connect(function()
+    acc = not acc
+    accBtn.Text = acc and "ACC ON" or "ACC OFF"
+    killAcc(not acc)
+end)
+
+grassBtn.MouseButton1Click:Connect(function()
+    grass = not grass
+    grassBtn.Text = grass and "GRASS ON" or "GRASS OFF"
+    grassOff(not grass)
+end)
+
+animBtn.MouseButton1Click:Connect(function()
+    anim = not anim
+    animBtn.Text = anim and "ANIM ON" or "ANIM OFF"
+    killAnim(not anim)
+end)
+
+distBtn.MouseButton1Click:Connect(function()
+    dist = not dist
+    distBtn.Text = dist and "DIST ON" or "DIST OFF"
+    distOff(not dist)
+end)
