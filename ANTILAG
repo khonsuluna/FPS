@@ -1,4 +1,4 @@
---// HELL TURBO MODE + POTATO V3 (3 BUTTON — MOBILE SAFE EDITION)
+--// HELL TURBO MODE + POTATO V3 — DRAG EDITION (3 Buttons)
 local GUI_NAME = "HellTurboGui"
 
 if game.CoreGui:FindFirstChild(GUI_NAME) then
@@ -9,21 +9,30 @@ local gui = Instance.new("ScreenGui")
 gui.Parent = game.CoreGui
 gui.Name = GUI_NAME
 gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true -- FIX HP SAFE AREA
+gui.IgnoreGuiInset = true
 
--- Auto layout (anti tabrak)
-local layout = Instance.new("UIListLayout", gui)
-layout.Padding = UDim.new(0, 6)
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+-- frame pembungkus draggable
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 150, 0, 110)
+frame.Position = UDim2.new(0, 10, 0, 60)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.BorderSizePixel = 1
+frame.Active = true
+frame.Draggable = true -- MAGIC INI ☕
+
+local layout = Instance.new("UIListLayout", frame)
+layout.Padding = UDim.new(0,6)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
 local function makeButton(text)
-    local b = Instance.new("TextButton", gui)
-    b.Size = UDim2.new(0, 140, 0, 28)
-    b.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    local b = Instance.new("TextButton", frame)
+    b.Size = UDim2.new(1, -8, 0, 28)
+    b.BackgroundColor3 = Color3.fromRGB(35,35,35)
     b.TextColor3 = Color3.fromRGB(255,255,255)
     b.Text = text
     b.AutoButtonColor = false
+    b.Font = Enum.Font.SourceSansBold
     return b
 end
 
@@ -49,20 +58,15 @@ local SAFE = {
     SoundVolume = SoundService.Volume
 }
 
-local function lightweightSweep(fn)
-    for _, v in ipairs(workspace:GetDescendants()) do
-        pcall(function() fn(v) end)
-    end
+local function lw(fn)
+    for _, v in ipairs(workspace:GetDescendants()) do pcall(function() fn(v) end) end
 end
 
 local function hidePlayers(state)
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and plr.Character then
             for _, part in ipairs(plr.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.LocalTransparencyModifier = state and 1 or 0
-                end
-                if part:IsA("Accessory") or part:IsA("Hat") then
+                if part:IsA("BasePart") or part:IsA("Accessory") or part:IsA("Hat") then
                     part.LocalTransparencyModifier = state and 1 or 0
                 end
             end
@@ -92,11 +96,10 @@ end
 
 local function killAnim(state)
     local lp = LocalPlayer
-    if not lp or not lp.Character then return end
-    local humanoid = lp.Character:FindFirstChildOfClass("Humanoid")
-    if humanoid and state then
-        for _, t in ipairs(humanoid:GetPlayingAnimationTracks()) do
-            pcall(function() t:Stop() end)
+    if lp and lp.Character then
+        local h = lp.Character:FindFirstChildOfClass("Humanoid")
+        if h and state then
+            for _, t in ipairs(h:GetPlayingAnimationTracks()) do pcall(function() t:Stop() end) end
         end
     end
 end
@@ -110,27 +113,13 @@ end
 local function applyUltra(state)
     if state then
         pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 end)
-
-        lightweightSweep(function(v)
-            if v:IsA("BasePart") then
-                v.Material = Enum.Material.SmoothPlastic
-                v.Reflectance = 0
-            end
-            if v:IsA("Decal") or v:IsA("Texture") then
-                v.Transparency = 1
-            end
-            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") then
-                v.Enabled = false
-            end
-            if v:IsA("MeshPart") then
-                v.RenderFidelity = Enum.RenderFidelity.Performance
-                v.TextureID = ""
-            end
-            if v:IsA("SurfaceAppearance") then
-                v:Destroy()
-            end
+        lw(function(v)
+            if v:IsA("BasePart") then v.Material = Enum.Material.SmoothPlastic; v.Reflectance = 0 end
+            if v:IsA("Decal") or v:IsA("Texture") then v.Transparency = 1 end
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") then v.Enabled = false end
+            if v:IsA("MeshPart") then v.RenderFidelity = Enum.RenderFidelity.Performance; v.TextureID = "" end
+            if v:IsA("SurfaceAppearance") then v:Destroy() end
         end)
-
         local L = game.Lighting
         if L then
             L.GlobalShadows = false
@@ -139,8 +128,7 @@ local function applyUltra(state)
             L.Brightness = 1
             L.FogEnd = 9e9
         end
-
-        if workspace.CurrentCamera then workspace.CurrentCamera.FieldOfView = 70 end
+        pcall(function() workspace.CurrentCamera.FieldOfView = 70 end)
         pcall(function() setfpscap(9999) end)
     else
         pcall(function() settings().Rendering.QualityLevel = SAFE.QualityLevel end)
@@ -149,20 +137,19 @@ local function applyUltra(state)
             game.Lighting.Ambient = SAFE.Ambient
             game.Lighting.OutdoorAmbient = SAFE.OutdoorAmbient
         end
-        if workspace.CurrentCamera then workspace.CurrentCamera.FieldOfView = SAFE.FOV end
+        pcall(function() workspace.CurrentCamera.FieldOfView = SAFE.FOV end)
     end
 end
 
--- POTATO (placeholder, isi sesuai versi kamu)
+-- POTATO placeholder (isi script kamu)
 local potatoLoopThread = nil
 local function applyPotato(state)
-    -- (isi POTATO V3 kamu masuk sini)
+    -- masukkan Potatov3 mu disini
 end
 
 turboBtn.MouseButton1Click:Connect(function()
     ultra = not ultra
     turboBtn.Text = ultra and "TURBO ON" or "TURBO OFF"
-
     applyUltra(ultra)
     hidePlayers(ultra)
     killAcc(ultra)
