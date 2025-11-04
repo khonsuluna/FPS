@@ -1,4 +1,3 @@
---// HELL TURBO MODE
 local GUI_NAME = "HellTurboGui"
 
 if game.CoreGui:FindFirstChild(GUI_NAME) then
