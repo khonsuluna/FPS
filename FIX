@@ -1,0 +1,121 @@
+--// === HELL TURBO MODE v3 ===
+local GUI_NAME = "HellTurboGui"
+
+if game.CoreGui:FindFirstChild(GUI_NAME) then
+    game.CoreGui:FindFirstChild(GUI_NAME):Destroy()
+end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = GUI_NAME
+gui.Parent = game.CoreGui
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 200, 0, 180)
+frame.Position = UDim2.new(0.5, -100, 0.7, -90)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BackgroundTransparency = 0.2
+
+local UICorner = Instance.new("UICorner", frame)
+UICorner.CornerRadius = UDim.new(0, 10)
+
+local UIListLayout = Instance.new("UIListLayout", frame)
+UIListLayout.Padding = UDim.new(0, 6)
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+
+local function makeButton(txt)
+	local b = Instance.new("TextButton", frame)
+	b.Size = UDim2.new(0, 160, 0, 40)
+	b.Text = txt
+	b.BackgroundColor3 = Color3.fromRGB(240, 90, 60)
+	b.TextColor3 = Color3.fromRGB(255, 255, 255)
+	b.TextScaled = true
+	b.AutoButtonColor = false
+	local cr = Instance.new("UICorner", b)
+	cr.CornerRadius = UDim.new(0, 8)
+	return b
+end
+
+-- DRAG CODE (tanpa ganggu tombol)
+local dragging, dragStart, startPos
+local UIS = game:GetService("UserInputService")
+
+local function update(input)
+	local delta = input.Position - dragStart
+	frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+		startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+	end
+end)
+
+frame.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		update(input)
+	end
+end)
+
+-- states
+local turbo = false
+local potato = false
+local hideall = false
+
+local Lighting = game.Lighting
+local Players = game.Players
+local LocalPlayer = Players.LocalPlayer
+
+-- TURBO
+local turboBtn = makeButton("Turbo Mode")
+turboBtn.MouseButton1Click:Connect(function()
+	turbo = not turbo
+	turboBtn.BackgroundColor3 = turbo and Color3.fromRGB(60, 200, 90) or Color3.fromRGB(240, 90, 60)
+
+	if turbo then
+		Lighting.GlobalShadows = false
+		Lighting.Ambient = Color3.new(1,1,1)
+		settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+	else
+		Lighting.GlobalShadows = true
+		Lighting.Ambient = Color3.new(.5,.5,.5)
+		settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
+	end
+end)
+
+-- POTATO
+local potatoBtn = makeButton("Potato Mode")
+potatoBtn.MouseButton1Click:Connect(function()
+	potato = not potato
+	potatoBtn.BackgroundColor3 = potato and Color3.fromRGB(60, 200, 90) or Color3.fromRGB(240, 90, 60)
+
+	settings().Rendering.MeshPartDetailLevel = potato and Enum.MeshPartDetailLevel.Level00 or Enum.MeshPartDetailLevel.Level04
+	workspace.Terrain.WaterWaveSize = potato and 0 or 0.15
+	workspace.Terrain.WaterReflectance = potato and 0 or .5
+end)
+
+-- HIDE PLAYER
+local hideBtn = makeButton("Hide Player")
+hideBtn.MouseButton1Click:Connect(function()
+	hideall = not hideall
+	hideBtn.BackgroundColor3 = hideall and Color3.fromRGB(60, 200, 90) or Color3.fromRGB(240, 90, 60)
+
+	local char = LocalPlayer.Character
+	if not char then return end
+
+	for _,v in pairs(char:GetDescendants()) do
+		if v:IsA("BasePart") or v:IsA("Accessory") or v:IsA("Decal") then
+			v.LocalTransparencyModifier = hideall and 1 or 0
+		end
+	end
+end)
