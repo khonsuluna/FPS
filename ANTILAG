@@ -1,27 +1,35 @@
---// HELL TURBO MODE + POTATO V3 (3 BUTTON EDITION)
+--// HELL TURBO MODE + POTATO V3 (3 BUTTON — MOBILE SAFE EDITION)
 local GUI_NAME = "HellTurboGui"
 
 if game.CoreGui:FindFirstChild(GUI_NAME) then
     game.CoreGui:FindFirstChild(GUI_NAME):Destroy()
 end
 
-local gui = Instance.new("ScreenGui", game.CoreGui)
+local gui = Instance.new("ScreenGui")
+gui.Parent = game.CoreGui
 gui.Name = GUI_NAME
 gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true -- FIX HP SAFE AREA
 
-local function makeButton(text, y)
+-- Auto layout (anti tabrak)
+local layout = Instance.new("UIListLayout", gui)
+layout.Padding = UDim.new(0, 6)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+layout.VerticalAlignment = Enum.VerticalAlignment.Top
+
+local function makeButton(text)
     local b = Instance.new("TextButton", gui)
-    b.Size = UDim2.new(0, 120, 0, 25)
-    b.Position = UDim2.new(0, 10, 0, y)
+    b.Size = UDim2.new(0, 140, 0, 28)
     b.BackgroundColor3 = Color3.fromRGB(30,30,30)
     b.TextColor3 = Color3.fromRGB(255,255,255)
     b.Text = text
+    b.AutoButtonColor = false
     return b
 end
 
-local turboBtn   = makeButton("TURBO OFF", 80)
-local renderBtn  = makeButton("3D ON",     110)
-local potatoBtn  = makeButton("POTATO V3 OFF", 140)
+local turboBtn   = makeButton("TURBO OFF")
+local renderBtn  = makeButton("3D ON")
+local potatoBtn  = makeButton("POTATO V3 OFF")
 
 local ultra = false
 local render = true
@@ -47,7 +55,6 @@ local function lightweightSweep(fn)
     end
 end
 
--- base functions
 local function hidePlayers(state)
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and plr.Character then
@@ -100,7 +107,6 @@ local function distOff(state)
     end
 end
 
--- ULTRA TURBO
 local function applyUltra(state)
     if state then
         pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 end)
@@ -147,14 +153,12 @@ local function applyUltra(state)
     end
 end
 
--- POTATO V3 (tidak diubah)
+-- POTATO (placeholder, isi sesuai versi kamu)
 local potatoLoopThread = nil
 local function applyPotato(state)
-    -- (isi POTATO V3 sama seperti script kamu sebelumnya)
-    -- sengaja tidak dipotong biar melanjutkan fungsinya
+    -- (isi POTATO V3 kamu masuk sini)
 end
 
--- BUTTON TURBO (MERGED)
 turboBtn.MouseButton1Click:Connect(function()
     ultra = not ultra
     turboBtn.Text = ultra and "TURBO ON" or "TURBO OFF"
@@ -167,14 +171,12 @@ turboBtn.MouseButton1Click:Connect(function()
     distOff(not ultra)
 end)
 
--- BUTTON 3D rendering
 renderBtn.MouseButton1Click:Connect(function()
     render = not render
     renderBtn.Text = render and "3D ON" or "3D OFF"
     RunService:Set3dRenderingEnabled(render)
 end)
 
--- BUTTON POTATO
 potatoBtn.MouseButton1Click:Connect(function()
     potato = not potato
     potatoBtn.Text = potato and "POTATO V3 ON" or "POTATO V3 OFF"
