@@ -125,10 +125,57 @@ turboBtn.MouseButton1Click:Connect(function()
     applyUltra(ultra)
 end)
 
+-- ✅ UPDATED WHITE MODE BUTTON
 renderBtn.MouseButton1Click:Connect(function()
     render = not render
     renderBtn.Text = render and "3D ON" or "3D OFF"
-    game:GetService("RunService"):Set3dRenderingEnabled(render)
+
+    local RS = game:GetService("RunService")
+    local sound = game:GetService("SoundService")
+    local cam = workspace.CurrentCamera
+    local L = game.Lighting
+
+    RS:Set3dRenderingEnabled(render)
+
+    if not render then
+        -- matiin suara
+        sound.Volume = 0
+
+        -- GPU load down
+        if cam then
+            cam.FieldOfView = 40
+        end
+
+        -- brightness nurun biar ga nyilauin
+        if L then
+            L.Brightness = 0.5
+        end
+
+        -- overlay putih lembut
+        if not gui:FindFirstChild("WhiteOverlay") then
+            local w = Instance.new("Frame", gui)
+            w.Name = "WhiteOverlay"
+            w.BackgroundColor3 = Color3.new(1,1,1)
+            w.BackgroundTransparency = 0.05
+            w.Size = UDim2.new(1,0,1,0)
+            w.ZIndex = 9999
+        end
+
+    else
+        -- balikin suara
+        sound.Volume = 1
+
+        -- FOV normal
+        if cam then cam.FieldOfView = 70 end
+
+        -- brightness normal
+        if L then L.Brightness = 2 end
+
+        -- hapus overlay
+        if gui:FindFirstChild("WhiteOverlay") then
+            gui.WhiteOverlay:Destroy()
+        end
+    end
 end)
 
 playersBtn.MouseButton1Click:Connect(function()
