@@ -1,121 +1,168 @@
---// === HELL TURBO MODE v3 ===
 local GUI_NAME = "HellTurboGui"
 
 if game.CoreGui:FindFirstChild(GUI_NAME) then
     game.CoreGui:FindFirstChild(GUI_NAME):Destroy()
 end
 
-local gui = Instance.new("ScreenGui")
+local gui = Instance.new("ScreenGui", game.CoreGui)
 gui.Name = GUI_NAME
-gui.Parent = game.CoreGui
 gui.ResetOnSpawn = false
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 200, 0, 180)
-frame.Position = UDim2.new(0.5, -100, 0.7, -90)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.BackgroundTransparency = 0.2
-
-local UICorner = Instance.new("UICorner", frame)
-UICorner.CornerRadius = UDim.new(0, 10)
-
-local UIListLayout = Instance.new("UIListLayout", frame)
-UIListLayout.Padding = UDim.new(0, 6)
-UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-
-local function makeButton(txt)
-	local b = Instance.new("TextButton", frame)
-	b.Size = UDim2.new(0, 160, 0, 40)
-	b.Text = txt
-	b.BackgroundColor3 = Color3.fromRGB(240, 90, 60)
-	b.TextColor3 = Color3.fromRGB(255, 255, 255)
-	b.TextScaled = true
-	b.AutoButtonColor = false
-	local cr = Instance.new("UICorner", b)
-	cr.CornerRadius = UDim.new(0, 8)
-	return b
+local function makeButton(text, y)
+    local b = Instance.new("TextButton", gui)
+    b.Size = UDim2.new(0, 120, 0, 25)
+    b.Position = UDim2.new(0, 10, 0, y)
+    b.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    b.TextColor3 = Color3.fromRGB(255,255,255)
+    b.Text = text
+    return b
 end
 
--- DRAG CODE (tanpa ganggu tombol)
-local dragging, dragStart, startPos
-local UIS = game:GetService("UserInputService")
+local turboBtn   = makeButton("TURBO OFF", 80)
+local renderBtn  = makeButton("3D ON",     110)
+local playersBtn = makeButton("PLAYERS ON",140)
+local accBtn     = makeButton("ACC ON",    170)
+local grassBtn   = makeButton("GRASS ON",  200)
+local animBtn    = makeButton("ANIM ON",   230)
+local distBtn    = makeButton("DIST ON",   260)
 
-local function update(input)
-	local delta = input.Position - dragStart
-	frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
-		startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+local ultra = false
+
+-- ULTRA TURBO
+local function applyUltra(state)
+    if state then
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        
+        for _, v in ipairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.Material = Enum.Material.SmoothPlastic
+                v.Reflectance = 0
+            end
+            if v:IsA("Decal") or v:IsA("Texture") then
+                v.Transparency = 1
+            end
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") then
+                v.Enabled = false
+            end
+        end
+        
+        local L = game.Lighting
+        if L then
+            L.GlobalShadows = false
+            L.Ambient = Color3.new(1,1,1)
+            L.OutdoorAmbient = Color3.new(1,1,1)
+            L.Brightness = 1
+            L.FogEnd = 9e9
+            L.EnvironmentDiffuseScale = 0
+            L.EnvironmentSpecularScale = 0
+        end
+        
+        workspace.CurrentCamera.FieldOfView = 70
+        pcall(function() setfpscap(9999) end)
+        
+    else
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
+    end
 end
 
-frame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		startPos = frame.Position
-	end
-end)
+-- HIDE PLAYERS
+local function hidePlayers(state)
+    for _, plr in ipairs(game.Players:GetPlayers()) do
+        if plr ~= game.Players.LocalPlayer and plr.Character then
+            for _, part in ipairs(plr.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.LocalTransparencyModifier = state and 1 or 0
+                end
+            end
+        end
+    end
+end
 
-frame.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
-	end
-end)
+-- KILL ACCESSORIES
+local function killAcc(state)
+    for _, plr in ipairs(game.Players:GetPlayers()) do
+        if plr.Character then
+            for _, v in ipairs(plr.Character:GetDescendants()) do
+                if v:IsA("Accessory") or v:IsA("MeshPart") then
+                    v.Transparency = state and 1 or 0
+                end
+            end
+        end
+    end
+end
 
-UIS.InputChanged:Connect(function(input)
-	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-		update(input)
-	end
-end)
+-- REMOVE GRASS
+local function grassOff(state)
+    workspace.Terrain.Decoration = not state
+end
 
--- states
-local turbo = false
-local potato = false
-local hideall = false
+-- ANIMATION KILL
+local function killAnim(state)
+    local lp = game.Players.LocalPlayer
+    if lp.Character then
+        for _, t in ipairs(lp.Character:FindFirstChildOfClass("Humanoid"):GetPlayingAnimationTracks()) do
+            if state then t:Stop() end
+        end
+    end
+end
 
-local Lighting = game.Lighting
-local Players = game.Players
-local LocalPlayer = Players.LocalPlayer
+-- RENDER DISTANCE
+local function distOff(state)
+    workspace.CurrentCamera.MaxZoomDistance = state and 400 or 8
+end
 
--- TURBO
-local turboBtn = makeButton("Turbo Mode")
+-- TURBO BUTTON
 turboBtn.MouseButton1Click:Connect(function()
-	turbo = not turbo
-	turboBtn.BackgroundColor3 = turbo and Color3.fromRGB(60, 200, 90) or Color3.fromRGB(240, 90, 60)
+    ultra = not ultra
+    turboBtn.Text = ultra and "TURBO ON" or "TURBO OFF"
+    applyUltra(ultra)
 
-	if turbo then
-		Lighting.GlobalShadows = false
-		Lighting.Ambient = Color3.new(1,1,1)
-		settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-	else
-		Lighting.GlobalShadows = true
-		Lighting.Ambient = Color3.new(.5,.5,.5)
-		settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
-	end
+    hidePlayers(ultra)
+    killAcc(ultra)
+    grassOff(ultra)
+    killAnim(ultra)
+    distOff(ultra)
+
+    playersBtn.Text = ultra and "PLAYERS OFF" or "PLAYERS ON"
+    accBtn.Text     = ultra and "ACC OFF"     or "ACC ON"
+    grassBtn.Text   = ultra and "GRASS OFF"   or "GRASS ON"
+    animBtn.Text    = ultra and "ANIM OFF"    or "ANIM ON"
+    distBtn.Text    = ultra and "DIST OFF"    or "DIST ON"
 end)
 
--- POTATO
-local potatoBtn = makeButton("Potato Mode")
-potatoBtn.MouseButton1Click:Connect(function()
-	potato = not potato
-	potatoBtn.BackgroundColor3 = potato and Color3.fromRGB(60, 200, 90) or Color3.fromRGB(240, 90, 60)
+-- ✅ 3D render tetap independent
+renderBtn.MouseButton1Click:Connect(function()
+    render = not render
+    renderBtn.Text = render and "3D ON" or "3D OFF"
 
-	settings().Rendering.MeshPartDetailLevel = potato and Enum.MeshPartDetailLevel.Level00 or Enum.MeshPartDetailLevel.Level04
-	workspace.Terrain.WaterWaveSize = potato and 0 or 0.15
-	workspace.Terrain.WaterReflectance = potato and 0 or .5
-end)
+    local RS = game:GetService("RunService")
+    local sound = game:GetService("SoundService")
+    local cam = workspace.CurrentCamera
+    local L = game.Lighting
 
--- HIDE PLAYER
-local hideBtn = makeButton("Hide Player")
-hideBtn.MouseButton1Click:Connect(function()
-	hideall = not hideall
-	hideBtn.BackgroundColor3 = hideall and Color3.fromRGB(60, 200, 90) or Color3.fromRGB(240, 90, 60)
+    RS:Set3dRenderingEnabled(render)
 
-	local char = LocalPlayer.Character
-	if not char then return end
+    if not render then
+        sound.Volume = 0
+        if cam then cam.FieldOfView = 40 end
+        if L then L.Brightness = 0.5 end
 
-	for _,v in pairs(char:GetDescendants()) do
-		if v:IsA("BasePart") or v:IsA("Accessory") or v:IsA("Decal") then
-			v.LocalTransparencyModifier = hideall and 1 or 0
-		end
-	end
+        if not gui:FindFirstChild("WhiteOverlay") then
+            local w = Instance.new("Frame", gui)
+            w.Name = "WhiteOverlay"
+            w.BackgroundColor3 = Color3.new(1,1,1)
+            w.BackgroundTransparency = 0.05
+            w.Size = UDim2.new(1,0,1,0)
+            w.ZIndex = 9999
+        end
+
+    else
+        sound.Volume = 1
+        if cam then cam.FieldOfView = 70 end
+        if L then L.Brightness = 2 end
+        
+        if gui:FindFirstChild("WhiteOverlay") then
+            gui.WhiteOverlay:Destroy()
+        end
+    end
 end)
