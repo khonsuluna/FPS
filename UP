@@ -7,21 +7,57 @@ end
 local gui = Instance.new("ScreenGui", game.CoreGui)
 gui.Name = GUI_NAME
 gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Draggable frame
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0,180,0,120)
+main.Position = UDim2.new(0.15,0,0.2,0)
+main.BackgroundColor3 = Color3.fromRGB(20,20,20)
+main.BorderSizePixel = 0
+
+Instance.new("UICorner",main).CornerRadius = UDim.new(0,8)
+
+local UIS = game:GetService("UserInputService")
+local dragging, dragStart, startPos
+
+main.InputBegan:Connect(function(input)
+    if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = main.Position
+    end
+end)
+
+main.InputEnded:Connect(function(input)
+    if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType==Enum.UserInputType.MouseMovement or input.UserInputType==Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        main.Position = UDim2.new(startPos.X.Scale,startPos.X.Offset+delta.X,startPos.Y.Scale,startPos.Y.Offset+delta.Y)
+    end
+end)
 
 local TweenService = game:GetService("TweenService")
 
 -- Toggle factory
 local function makeToggle(label, y)
-    local frame = Instance.new("Frame", gui)
-    frame.Size = UDim2.new(0, 160, 0, 32)
-    frame.Position = UDim2.new(0, 10, 0, y)
-    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    local frame = Instance.new("Frame", main)
+    frame.Size = UDim2.new(0,160,0,32)
+    frame.Position = UDim2.new(0,10,0,y)
+    frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
     frame.BorderSizePixel = 0
 
     local text = Instance.new("TextLabel", frame)
     text.Size = UDim2.new(0.6,0,1,0)
     text.BackgroundTransparency = 1
     text.TextColor3 = Color3.fromRGB(255,255,255)
+    text.TextScaled = true
     text.Text = label
     text.Font = Enum.Font.GothamBold
     text.TextXAlignment = Enum.TextXAlignment.Left
@@ -30,10 +66,9 @@ local function makeToggle(label, y)
     local bg = Instance.new("Frame", frame)
     bg.Size = UDim2.new(0,45,0,20)
     bg.Position = UDim2.new(1,-55,0.5,-10)
-    bg.BackgroundColor3 = Color3.fromRGB(120,120,120)
+    bg.BackgroundColor3 = Color3.fromRGB(255,80,80)
     bg.BorderSizePixel = 0
-    local uic = Instance.new("UICorner", bg)
-    uic.CornerRadius = UDim.new(0,12)
+    Instance.new("UICorner", bg).CornerRadius = UDim.new(0,12)
 
     local knob = Instance.new("Frame", bg)
     knob.Size = UDim2.new(0,18,0,18)
@@ -51,13 +86,13 @@ local function makeToggle(label, y)
     return btn, knob, bg
 end
 
-local turboBtn, turboKnob, turboBG = makeToggle("TURBO", 80)
-local renderBtn, renderKnob, renderBG = makeToggle("3D Render", 120)
+local turboBtn, turboKnob, turboBG = makeToggle("TURBO", 10)
+local renderBtn, renderKnob, renderBG = makeToggle("3D RENDER", 50)
 
 local ultra = false
 local render = true
 
-local function switch(knob, bg, state)
+local function switch(knob,bg,state)
     TweenService:Create(knob, TweenInfo.new(.2), {
         Position = state and UDim2.new(1,-19,0,1) or UDim2.new(0,1,0,1)
     }):Play()
@@ -67,22 +102,17 @@ local function switch(knob, bg, state)
     }):Play()
 end
 
--- ORIGINAL TURBO FEATURES
+switch(renderKnob,renderBG,true)
+switch(turboKnob,turboBG,false)
+
+-- TURBO ENGINE
 local function applyUltra(state)
     if state then
         settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-
         for _, v in ipairs(workspace:GetDescendants()) do
-            if v:IsA("BasePart") then
-                v.Material = Enum.Material.SmoothPlastic
-                v.Reflectance = 0
-            end
-            if v:IsA("Decal") or v:IsA("Texture") then
-                v.Transparency = 1
-            end
-            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") then
-                v.Enabled = false
-            end
+            if v:IsA("BasePart") then v.Material = Enum.Material.SmoothPlastic v.Reflectance = 0 end
+            if v:IsA("Decal") or v:IsA("Texture") then v.Transparency = 1 end
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") then v.Enabled = false end
         end
 
         local L = game.Lighting
@@ -95,6 +125,7 @@ local function applyUltra(state)
             L.EnvironmentDiffuseScale = 0
             L.EnvironmentSpecularScale = 0
         end
+
         workspace.CurrentCamera.FieldOfView = 70
         pcall(function() setfpscap(9999) end)
     else
@@ -104,11 +135,9 @@ end
 
 local function hidePlayers(state)
     for _, plr in ipairs(game.Players:GetPlayers()) do
-        if plr ~= game.Players.LocalPlayer and plr.Character then
+        if plr~=game.Players.LocalPlayer and plr.Character then
             for _, part in ipairs(plr.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.LocalTransparencyModifier = state and 1 or 0
-                end
+                if part:IsA("BasePart") then part.LocalTransparencyModifier = state and 1 or 0 end
             end
         end
     end
@@ -118,9 +147,7 @@ local function killAcc(state)
     for _, plr in ipairs(game.Players:GetPlayers()) do
         if plr.Character then
             for _, v in ipairs(plr.Character:GetDescendants()) do
-                if v:IsA("Accessory") or v:IsA("MeshPart") then
-                    v.Transparency = state and 1 or 0
-                end
+                if v:IsA("Accessory") or v:IsA("MeshPart") then v.Transparency = state and 1 or 0 end
             end
         end
     end
@@ -143,23 +170,19 @@ local function distOff(state)
     workspace.CurrentCamera.MaxZoomDistance = state and 400 or 8
 end
 
--- CLICK TURBO
 turboBtn.MouseButton1Click:Connect(function()
     ultra = not ultra
-
     applyUltra(ultra)
     hidePlayers(ultra)
     killAcc(ultra)
     grassOff(ultra)
     killAnim(ultra)
     distOff(ultra)
-
-    switch(turboKnob, turboBG, ultra)
+    switch(turboKnob,turboBG,ultra)
 end)
 
--- CLICK RENDER
 renderBtn.MouseButton1Click:Connect(function()
     render = not render
     game:GetService("RunService"):Set3dRenderingEnabled(render)
-    switch(renderKnob, renderBG, render)
+    switch(renderKnob,renderBG,render)
 end)
