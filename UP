@@ -30,10 +30,9 @@ local function makeToggle(label, y)
     local bg = Instance.new("Frame", frame)
     bg.Size = UDim2.new(0,45,0,20)
     bg.Position = UDim2.new(1,-55,0.5,-10)
-    bg.BackgroundColor3 = Color3.fromRGB(255,80,80) -- default OFF merah
+    bg.BackgroundColor3 = Color3.fromRGB(255,80,80)
     bg.BorderSizePixel = 0
-    local uic = Instance.new("UICorner", bg)
-    uic.CornerRadius = UDim.new(0,12)
+    Instance.new("UICorner", bg).CornerRadius = UDim.new(0,12)
 
     local knob = Instance.new("Frame", bg)
     knob.Size = UDim2.new(0,18,0,18)
@@ -145,74 +144,106 @@ local function distOff(state)
     workspace.CurrentCamera.MaxZoomDistance = state and 400 or 8
 end
 
--- EXTREME MODE
+-- EXTREME MODE ULTRA GACOR
 local function applyExtreme(state)
     local L = game.Lighting
     if state then
-        -- Remove postFX
+        -- PostFX & sky off
         for _, v in ipairs(L:GetChildren()) do
-            if v:IsA("PostEffect") then
-                v.Enabled = false
-            end
+            if v:IsA("PostEffect") then v.Enabled = false end
+            if v:IsA("Sky") then v:Destroy() end
         end
 
-        -- Remove sky
-        for _, v in ipairs(L:GetChildren()) do
-            if v:IsA("Sky") then
-                v:Destroy()
-            end
-        end
-
-        -- Kill surface appearance
+        -- SurfaceAppearance off
         for _, v in ipairs(workspace:GetDescendants()) do
-            if v:IsA("SurfaceAppearance") then
-                v:Destroy()
-            end
+            if v:IsA("SurfaceAppearance") then v:Destroy() end
         end
 
-        -- Water off
+        -- Water minimal
         workspace.Terrain.WaterWaveSize = 0
         workspace.Terrain.WaterWaveSpeed = 0
         workspace.Terrain.WaterTransparency = 1
         workspace.Terrain.WaterReflectance = 0
+        workspace.Terrain.Decoration = false
 
-        -- Low poly mesh
+        -- Mesh + part extreme
         for _, v in ipairs(workspace:GetDescendants()) do
             if v:IsA("MeshPart") then
                 v.MeshId = ""
             end
-        end
-
-        -- Remove shadows
-        for _, v in ipairs(workspace:GetDescendants()) do
             if v:IsA("BasePart") then
+                v.Material = Enum.Material.SmoothPlastic
+                v.Color = Color3.fromRGB(120,120,120)
                 v.CastShadow = false
+                v.Reflectance = 0
+            end
+            if v:IsA("Decal") or v:IsA("Texture") then
+                v.Transparency = 1
+            end
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") then
+                v.Enabled = false
             end
         end
 
-        -- Lowest tech
+        -- Players & accessories grey
+        for _, plr in ipairs(game.Players:GetPlayers()) do
+            if plr.Character then
+                for _, v in ipairs(plr.Character:GetDescendants()) do
+                    if v:IsA("BasePart") or v:IsA("MeshPart") then
+                        v.Color = Color3.fromRGB(150,150,150)
+                        v.Material = Enum.Material.SmoothPlastic
+                        v.Reflectance = 0
+                    end
+                    if v:IsA("Accessory") then
+                        v.Transparency = 1
+                    end
+                end
+            end
+        end
+
+        -- Stop animations
+        for _, plr in ipairs(game.Players:GetPlayers()) do
+            if plr.Character then
+                local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    for _, track in ipairs(hum:GetPlayingAnimationTracks()) do
+                        track:Stop()
+                    end
+                end
+            end
+        end
+
+        -- Lighting minimal
         L.Technology = Enum.Technology.Compatibility
+        L.GlobalShadows = false
+        L.Ambient = Color3.fromRGB(170,170,170)
+        L.OutdoorAmbient = Color3.fromRGB(170,170,170)
+        L.Brightness = 1
+        L.FogEnd = 9e9
+        L.EnvironmentDiffuseScale = 0
+        L.EnvironmentSpecularScale = 0
+
+        -- Camera distance
+        workspace.CurrentCamera.MaxZoomDistance = 400
 
     else
-        if not L:FindFirstChildOfClass("Sky") then
-            Instance.new("Sky", L)
-        end
+        -- Revert minimal
+        if not L:FindFirstChildOfClass("Sky") then Instance.new("Sky", L) end
         L.Technology = Enum.Technology.ShadowMap
         workspace.Terrain.WaterTransparency = 0.3
+        workspace.Terrain.Decoration = true
     end
 end
 
 -- CLICK TURBO
 turboBtn.MouseButton1Click:Connect(function()
     ultra = not ultra
-
     applyUltra(ultra)
     hidePlayers(ultra)
     killAcc(ultra)
     grassOff(ultra)
     killAnim(ultra)
     distOff(ultra)
-
     switch(turboKnob, turboBG, ultra)
 end)
 
@@ -230,7 +261,7 @@ renderBtn.MouseButton1Click:Connect(function()
     switch(renderKnob, renderBG, render)
 end)
 
--- Initial visual sync:
+-- Initial visual sync
 switch(turboKnob, turboBG, ultra)
 switch(extremeKnob, extremeBG, extreme)
 switch(renderKnob, renderBG, render)
