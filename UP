@@ -13,7 +13,7 @@ local TweenService = game:GetService("TweenService")
 -- Toggle factory
 local function makeToggle(label, y)
     local frame = Instance.new("Frame", gui)
-    frame.Size = UDim2.new(0, 140, 0, 32)
+    frame.Size = UDim2.new(0, 160, 0, 32)
     frame.Position = UDim2.new(0, 10, 0, y)
     frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     frame.BorderSizePixel = 0
@@ -32,8 +32,6 @@ local function makeToggle(label, y)
     bg.Position = UDim2.new(1,-55,0.5,-10)
     bg.BackgroundColor3 = Color3.fromRGB(120,120,120)
     bg.BorderSizePixel = 0
-    bg.BackgroundTransparency = .2
-
     local uic = Instance.new("UICorner", bg)
     uic.CornerRadius = UDim.new(0,12)
 
@@ -69,23 +67,97 @@ local function switch(knob, bg, state)
     }):Play()
 end
 
--- ULTRA APPLY
+-- ORIGINAL TURBO FEATURES
 local function applyUltra(state)
     if state then
         settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+
+        for _, v in ipairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.Material = Enum.Material.SmoothPlastic
+                v.Reflectance = 0
+            end
+            if v:IsA("Decal") or v:IsA("Texture") then
+                v.Transparency = 1
+            end
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") then
+                v.Enabled = false
+            end
+        end
+
+        local L = game.Lighting
+        if L then
+            L.GlobalShadows = false
+            L.Ambient = Color3.new(1,1,1)
+            L.OutdoorAmbient = Color3.new(1,1,1)
+            L.Brightness = 1
+            L.FogEnd = 9e9
+            L.EnvironmentDiffuseScale = 0
+            L.EnvironmentSpecularScale = 0
+        end
+        workspace.CurrentCamera.FieldOfView = 70
+        pcall(function() setfpscap(9999) end)
     else
         settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
     end
 end
 
--- turbo click
+local function hidePlayers(state)
+    for _, plr in ipairs(game.Players:GetPlayers()) do
+        if plr ~= game.Players.LocalPlayer and plr.Character then
+            for _, part in ipairs(plr.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.LocalTransparencyModifier = state and 1 or 0
+                end
+            end
+        end
+    end
+end
+
+local function killAcc(state)
+    for _, plr in ipairs(game.Players:GetPlayers()) do
+        if plr.Character then
+            for _, v in ipairs(plr.Character:GetDescendants()) do
+                if v:IsA("Accessory") or v:IsA("MeshPart") then
+                    v.Transparency = state and 1 or 0
+                end
+            end
+        end
+    end
+end
+
+local function grassOff(state)
+    workspace.Terrain.Decoration = not state
+end
+
+local function killAnim(state)
+    local lp = game.Players.LocalPlayer
+    if lp and lp.Character then
+        for _, t in ipairs(lp.Character:FindFirstChildOfClass("Humanoid"):GetPlayingAnimationTracks()) do
+            if state then t:Stop() end
+        end
+    end
+end
+
+local function distOff(state)
+    workspace.CurrentCamera.MaxZoomDistance = state and 400 or 8
+end
+
+-- CLICK TURBO
 turboBtn.MouseButton1Click:Connect(function()
     ultra = not ultra
+
     applyUltra(ultra)
+    hidePlayers(ultra)
+    killAcc(ultra)
+    grassOff(ultra)
+    killAnim(ultra)
+    distOff(ultra)
+
     switch(turboKnob, turboBG, ultra)
 end)
 
--- 3D click
+-- CLICK RENDER
 renderBtn.MouseButton1Click:Connect(function()
     render = not render
     game:GetService("RunService"):Set3dRenderingEnabled(render)
