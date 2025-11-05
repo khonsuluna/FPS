@@ -148,64 +148,108 @@ local function distOff(state)
 workspace.CurrentCamera.MaxZoomDistance = state and 400 or 8
 end
 
--- EXTREME MODE
+-- EXTREME MODE ULTRA GACOR
 local function applyExtreme(state)
-local L = game.Lighting
-if state then
--- Remove postFX
-for _, v in ipairs(L:GetChildren()) do
-if v:IsA("PostEffect") then
-v.Enabled = false
+    local L = game.Lighting
+    if state then
+        -- Remove postFX
+        for _, v in ipairs(L:GetChildren()) do
+            if v:IsA("PostEffect") then
+                v.Enabled = false
+            end
+        end
+
+        -- Remove sky
+        for _, v in ipairs(L:GetChildren()) do
+            if v:IsA("Sky") then
+                v:Destroy()
+            end
+        end
+
+        -- Kill surface appearance
+        for _, v in ipairs(workspace:GetDescendants()) do
+            if v:IsA("SurfaceAppearance") then
+                v:Destroy()
+            end
+        end
+
+        -- Water off
+        workspace.Terrain.WaterWaveSize = 0
+        workspace.Terrain.WaterWaveSpeed = 0
+        workspace.Terrain.WaterTransparency = 1
+        workspace.Terrain.WaterReflectance = 0
+        workspace.Terrain.Decoration = false -- matikan decoration/grass
+
+        -- Low poly mesh + basepart extreme
+        for _, v in ipairs(workspace:GetDescendants()) do
+            if v:IsA("MeshPart") then
+                v.MeshId = ""
+            end
+            if v:IsA("BasePart") then
+                v.CastShadow = false
+                v.Material = Enum.Material.SmoothPlastic
+                v.Color = Color3.fromRGB(120,120,120)
+                v.Reflectance = 0
+            end
+            if v:IsA("Decal") or v:IsA("Texture") then
+                v.Transparency = 1
+            end
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") then
+                v.Enabled = false
+            end
+        end
+
+        -- Players & accessories grey
+        for _, plr in ipairs(game.Players:GetPlayers()) do
+            if plr.Character then
+                for _, v in ipairs(plr.Character:GetDescendants()) do
+                    if v:IsA("BasePart") or v:IsA("MeshPart") then
+                        v.Color = Color3.fromRGB(150,150,150)
+                        v.Material = Enum.Material.SmoothPlastic
+                        v.Reflectance = 0
+                    end
+                    if v:IsA("Accessory") then
+                        v.Transparency = 1
+                    end
+                end
+            end
+        end
+
+        -- Stop all humanoid animations
+        for _, plr in ipairs(game.Players:GetPlayers()) do
+            if plr.Character then
+                local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    for _, track in ipairs(hum:GetPlayingAnimationTracks()) do
+                        track:Stop()
+                    end
+                end
+            end
+        end
+
+        -- Lighting minimal
+        L.Technology = Enum.Technology.Compatibility
+        L.GlobalShadows = false
+        L.Ambient = Color3.fromRGB(170,170,170)
+        L.OutdoorAmbient = Color3.fromRGB(170,170,170)
+        L.Brightness = 1
+        L.FogEnd = 9e9
+        L.EnvironmentDiffuseScale = 0
+        L.EnvironmentSpecularScale = 0
+
+        -- Camera distance
+        workspace.CurrentCamera.MaxZoomDistance = 400
+
+    else
+        -- Revert minimal
+        if not L:FindFirstChildOfClass("Sky") then
+            Instance.new("Sky", L)
+        end
+        L.Technology = Enum.Technology.ShadowMap
+        workspace.Terrain.WaterTransparency = 0.3
+        workspace.Terrain.Decoration = true
+    end
 end
-end
-
--- Remove sky  
-    for _, v in ipairs(L:GetChildren()) do  
-        if v:IsA("Sky") then  
-            v:Destroy()  
-        end  
-    end  
-
-    -- Kill surface appearance  
-    for _, v in ipairs(workspace:GetDescendants()) do  
-        if v:IsA("SurfaceAppearance") then  
-            v:Destroy()  
-        end  
-    end  
-
-    -- Water off  
-    workspace.Terrain.WaterWaveSize = 0  
-    workspace.Terrain.WaterWaveSpeed = 0  
-    workspace.Terrain.WaterTransparency = 1  
-    workspace.Terrain.WaterReflectance = 0  
-
-    -- Low poly mesh  
-    for _, v in ipairs(workspace:GetDescendants()) do  
-        if v:IsA("MeshPart") then  
-            v.MeshId = ""  
-        end  
-    end  
-
-    -- Remove shadows  
-    for _, v in ipairs(workspace:GetDescendants()) do  
-        if v:IsA("BasePart") then  
-            v.CastShadow = false  
-        end  
-    end  
-
-    -- Lowest tech  
-    L.Technology = Enum.Technology.Compatibility  
-
-else  
-    if not L:FindFirstChildOfClass("Sky") then  
-        Instance.new("Sky", L)  
-    end  
-    L.Technology = Enum.Technology.ShadowMap  
-    workspace.Terrain.WaterTransparency = 0.3  
-end
-
-end
-
 -- CLICK TURBO
 turboBtn.MouseButton1Click:Connect(function()
 ultra = not ultra
