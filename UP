@@ -30,7 +30,7 @@ local function makeToggle(label, y)
     local bg = Instance.new("Frame", frame)
     bg.Size = UDim2.new(0,45,0,20)
     bg.Position = UDim2.new(1,-55,0.5,-10)
-    bg.BackgroundColor3 = Color3.fromRGB(255,80,80) -- default OFF = merah
+    bg.BackgroundColor3 = Color3.fromRGB(255,80,80) -- default OFF merah
     bg.BorderSizePixel = 0
     local uic = Instance.new("UICorner", bg)
     uic.CornerRadius = UDim.new(0,12)
