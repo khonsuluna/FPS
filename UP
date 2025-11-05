@@ -1,7 +1,7 @@
 local GUI_NAME = "HellTurboGui"
 
 if game.CoreGui:FindFirstChild(GUI_NAME) then
-game.CoreGui:FindFirstChild(GUI_NAME):Destroy()
+    game.CoreGui:FindFirstChild(GUI_NAME):Destroy()
 end
 
 local gui = Instance.new("ScreenGui", game.CoreGui)
@@ -12,44 +12,43 @@ local TweenService = game:GetService("TweenService")
 
 -- Toggle factory
 local function makeToggle(label, y)
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 160, 0, 32)
-frame.Position = UDim2.new(0, 10, 0, y)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-frame.BorderSizePixel = 0
+    local frame = Instance.new("Frame", gui)
+    frame.Size = UDim2.new(0, 160, 0, 32)
+    frame.Position = UDim2.new(0, 10, 0, y)
+    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    frame.BorderSizePixel = 0
 
-local text = Instance.new("TextLabel", frame)  
-text.Size = UDim2.new(0.6,0,1,0)  
-text.BackgroundTransparency = 1  
-text.TextColor3 = Color3.fromRGB(255,255,255)  
-text.Text = label  
-text.Font = Enum.Font.GothamBold  
-text.TextXAlignment = Enum.TextXAlignment.Left  
-text.Position = UDim2.new(0,8,0,0)  
+    local text = Instance.new("TextLabel", frame)  
+    text.Size = UDim2.new(0.6,0,1,0)  
+    text.BackgroundTransparency = 1  
+    text.TextColor3 = Color3.fromRGB(255,255,255)  
+    text.Text = label  
+    text.Font = Enum.Font.GothamBold  
+    text.TextXAlignment = Enum.TextXAlignment.Left  
+    text.Position = UDim2.new(0,8,0,0)  
 
-local bg = Instance.new("Frame", frame)  
-bg.Size = UDim2.new(0,45,0,20)  
-bg.Position = UDim2.new(1,-55,0.5,-10)  
-bg.BackgroundColor3 = Color3.fromRGB(255,80,80) -- default OFF merah  
-bg.BorderSizePixel = 0  
-local uic = Instance.new("UICorner", bg)  
-uic.CornerRadius = UDim.new(0,12)  
+    local bg = Instance.new("Frame", frame)  
+    bg.Size = UDim2.new(0,45,0,20)  
+    bg.Position = UDim2.new(1,-55,0.5,-10)  
+    bg.BackgroundColor3 = Color3.fromRGB(255,80,80) -- default OFF merah  
+    bg.BorderSizePixel = 0  
+    local uic = Instance.new("UICorner", bg)  
+    uic.CornerRadius = UDim.new(0,12)  
 
-local knob = Instance.new("Frame", bg)  
-knob.Size = UDim2.new(0,18,0,18)  
-knob.Position = UDim2.new(0,1,0,1)  
-knob.BackgroundColor3 = Color3.fromRGB(255,255,255)  
-knob.BorderSizePixel = 0  
-Instance.new("UICorner", knob).CornerRadius = UDim.new(0,9)  
+    local knob = Instance.new("Frame", bg)  
+    knob.Size = UDim2.new(0,18,0,18)  
+    knob.Position = UDim2.new(0,1,0,1)  
+    knob.BackgroundColor3 = Color3.fromRGB(255,255,255)  
+    knob.BorderSizePixel = 0  
+    Instance.new("UICorner", knob).CornerRadius = UDim.new(0,9)  
 
-local btn = Instance.new("TextButton", frame)  
-btn.Size = UDim2.new(1,0,1,0)  
-btn.Text = ""  
-btn.BackgroundTransparency = 1  
-btn.AutoButtonColor = false  
+    local btn = Instance.new("TextButton", frame)  
+    btn.Size = UDim2.new(1,0,1,0)  
+    btn.Text = ""  
+    btn.BackgroundTransparency = 1  
+    btn.AutoButtonColor = false  
 
-return btn, knob, bg
-
+    return btn, knob, bg
 end
 
 local turboBtn, turboKnob, turboBG = makeToggle("TURBO", 80)
@@ -61,91 +60,89 @@ local extreme = false
 local render = true
 
 local function switch(knob, bg, state)
-TweenService:Create(knob, TweenInfo.new(.2), {
-Position = state and UDim2.new(1,-19,0,1) or UDim2.new(0,1,0,1)
-}):Play()
+    TweenService:Create(knob, TweenInfo.new(.2), {
+        Position = state and UDim2.new(1,-19,0,1) or UDim2.new(0,1,0,1)
+    }):Play()
 
-TweenService:Create(bg, TweenInfo.new(.2), {  
-    BackgroundColor3 = state and Color3.fromRGB(80,255,100) or Color3.fromRGB(255,80,80)  
-}):Play()
-
+    TweenService:Create(bg, TweenInfo.new(.2), {  
+        BackgroundColor3 = state and Color3.fromRGB(80,255,100) or Color3.fromRGB(255,80,80)  
+    }):Play()
 end
 
 -- ORIGINAL TURBO FEATURES
 local function applyUltra(state)
-if state then
-settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+    if state then
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
 
-for _, v in ipairs(workspace:GetDescendants()) do  
-        if v:IsA("BasePart") then  
-            v.Material = Enum.Material.SmoothPlastic  
-            v.Reflectance = 0  
+        for _, v in ipairs(workspace:GetDescendants()) do  
+            if v:IsA("BasePart") then  
+                v.Material = Enum.Material.SmoothPlastic  
+                v.Reflectance = 0  
+            end  
+            if v:IsA("Decal") or v:IsA("Texture") then  
+                v.Transparency = 1  
+            end  
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") then  
+                v.Enabled = false  
+            end  
         end  
-        if v:IsA("Decal") or v:IsA("Texture") then  
-            v.Transparency = 1  
-        end  
-        if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") then  
-            v.Enabled = false  
-        end  
-    end  
 
-    local L = game.Lighting  
-    if L then  
-        L.GlobalShadows = false  
-        L.Ambient = Color3.new(1,1,1)  
-        L.OutdoorAmbient = Color3.new(1,1,1)  
-        L.Brightness = 1  
-        L.FogEnd = 9e9  
-        L.EnvironmentDiffuseScale = 0  
-        L.EnvironmentSpecularScale = 0  
-    end  
-    workspace.CurrentCamera.FieldOfView = 70  
-    pcall(function() setfpscap(9999) end)  
-else  
-    settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic  
-end
-
+        local L = game.Lighting  
+        if L then  
+            L.GlobalShadows = false  
+            L.Ambient = Color3.new(1,1,1)  
+            L.OutdoorAmbient = Color3.new(1,1,1)  
+            L.Brightness = 1  
+            L.FogEnd = 9e9  
+            L.EnvironmentDiffuseScale = 0  
+            L.EnvironmentSpecularScale = 0  
+        end  
+        workspace.CurrentCamera.FieldOfView = 70  
+        pcall(function() setfpscap(9999) end)  
+    else  
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic  
+    end
 end
 
 local function hidePlayers(state)
-for _, plr in ipairs(game.Players:GetPlayers()) do
-if plr ~= game.Players.LocalPlayer and plr.Character then
-for _, part in ipairs(plr.Character:GetDescendants()) do
-if part:IsA("BasePart") then
-part.LocalTransparencyModifier = state and 1 or 0
-end
-end
-end
-end
+    for _, plr in ipairs(game.Players:GetPlayers()) do
+        if plr ~= game.Players.LocalPlayer and plr.Character then
+            for _, part in ipairs(plr.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.LocalTransparencyModifier = state and 1 or 0
+                end
+            end
+        end
+    end
 end
 
 local function killAcc(state)
-for _, plr in ipairs(game.Players:GetPlayers()) do
-if plr.Character then
-for _, v in ipairs(plr.Character:GetDescendants()) do
-if v:IsA("Accessory") or v:IsA("MeshPart") then
-v.Transparency = state and 1 or 0
-end
-end
-end
-end
+    for _, plr in ipairs(game.Players:GetPlayers()) do
+        if plr.Character then
+            for _, v in ipairs(plr.Character:GetDescendants()) do
+                if v:IsA("Accessory") or v:IsA("MeshPart") then
+                    v.Transparency = state and 1 or 0
+                end
+            end
+        end
+    end
 end
 
 local function grassOff(state)
-workspace.Terrain.Decoration = not state
+    workspace.Terrain.Decoration = not state
 end
 
 local function killAnim(state)
-local lp = game.Players.LocalPlayer
-if lp and lp.Character then
-for _, t in ipairs(lp.Character:FindFirstChildOfClass("Humanoid"):GetPlayingAnimationTracks()) do
-if state then t:Stop() end
-end
-end
+    local lp = game.Players.LocalPlayer
+    if lp and lp.Character then
+        for _, t in ipairs(lp.Character:FindFirstChildOfClass("Humanoid"):GetPlayingAnimationTracks()) do
+            if state then t:Stop() end
+        end
+    end
 end
 
 local function distOff(state)
-workspace.CurrentCamera.MaxZoomDistance = state and 400 or 8
+    workspace.CurrentCamera.MaxZoomDistance = state and 400 or 8
 end
 
 -- EXTREME MODE ULTRA GACOR
@@ -178,7 +175,7 @@ local function applyExtreme(state)
         workspace.Terrain.WaterWaveSpeed = 0
         workspace.Terrain.WaterTransparency = 1
         workspace.Terrain.WaterReflectance = 0
-        workspace.Terrain.Decoration = false -- matikan decoration/grass
+        workspace.Terrain.Decoration = false
 
         -- Low poly mesh + basepart extreme
         for _, v in ipairs(workspace:GetDescendants()) do
@@ -239,7 +236,6 @@ local function applyExtreme(state)
 
         -- Camera distance
         workspace.CurrentCamera.MaxZoomDistance = 400
-
     else
         -- Revert minimal
         if not L:FindFirstChildOfClass("Sky") then
@@ -250,33 +246,31 @@ local function applyExtreme(state)
         workspace.Terrain.Decoration = true
     end
 end
+
 -- CLICK TURBO
 turboBtn.MouseButton1Click:Connect(function()
-ultra = not ultra
-
-applyUltra(ultra)  
-hidePlayers(ultra)  
-killAcc(ultra)  
-grassOff(ultra)  
-killAnim(ultra)  
-distOff(ultra)  
-
-switch(turboKnob, turboBG, ultra)
-
+    ultra = not ultra
+    switch(turboKnob, turboBG, ultra)  -- switch dipanggil di atas
+    task.defer(function() applyUltra(ultra) end)
+    task.defer(function() hidePlayers(ultra) end)
+    task.defer(function() killAcc(ultra) end)
+    task.defer(function() grassOff(ultra) end)
+    task.defer(function() killAnim(ultra) end)
+    task.defer(function() distOff(ultra) end)
 end)
 
 -- CLICK EXTREME
 extremeBtn.MouseButton1Click:Connect(function()
-extreme = not extreme
-applyExtreme(extreme)
-switch(extremeKnob, extremeBG, extreme)
+    extreme = not extreme
+    switch(extremeKnob, extremeBG, extreme)  -- switch di atas
+    task.defer(function() applyExtreme(extreme) end)
 end)
 
 -- CLICK RENDER
 renderBtn.MouseButton1Click:Connect(function()
-render = not render
-game:GetService("RunService"):Set3dRenderingEnabled(render)
-switch(renderKnob, renderBG, render)
+    render = not render
+    game:GetService("RunService"):Set3dRenderingEnabled(render)
+    switch(renderKnob, renderBG, render)
 end)
 
 -- Initial visual sync:
