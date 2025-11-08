@@ -1,0 +1,522 @@
+-- ULTIMATE POTATO - MENTOK
+-- by ChatGPT
+-- Paste ke executor (Client-side). Use at your own risk. Script tries to restore states.
+
+local GUI_NAME = "UltimatePotatoMentok"
+if game.CoreGui:FindFirstChild(GUI_NAME) then
+    game.CoreGui:FindFirstChild(GUI_NAME):Destroy()
+end
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local StarterGui = game:GetService("StarterGui")
+
+local localPlayer = Players.LocalPlayer
+local cam = Workspace.CurrentCamera
+
+-- storage for restore
+local STORAGE = {
+    parts = {},      -- [instance] = {Material, Reflectance, CastShadow, Transparency, CanCollide}
+    decals = {},     -- [instance] = {Transparency}
+    fx = {},         -- [instance] = {Enabled}
+    players = {},    -- [plr] = {charParts = {{part, props}}, accessories = {accessory,...}}
+    lighting = {},
+    settings = {}
+}
+
+local boosted = false
+local keepApplying = false
+local applyLoop
+
+-- util helpers
+local function safeGetProp(obj, prop)
+    local ok, val = pcall(function() return obj[prop] end)
+    if ok then return val end
+    return nil
+end
+
+local function storePartProps(part)
+    if not part or not part.Parent then return end
+    if STORAGE.parts[part] then return end
+    STORAGE.parts[part] = {
+        Material = safeGetProp(part, "Material"),
+        Reflectance = safeGetProp(part, "Reflectance"),
+        CastShadow = safeGetProp(part, "CastShadow"),
+        Transparency = safeGetProp(part, "Transparency"),
+        CanCollide = safeGetProp(part, "CanCollide")
+    }
+end
+
+local function storeDecalProps(dec)
+    if not dec or not dec.Parent then return end
+    if STORAGE.decals[dec] then return end
+    STORAGE.decals[dec] = { Transparency = safeGetProp(dec, "Transparency") }
+end
+
+local function storeFxProps(eff)
+    if not eff or not eff.Parent then return end
+    if STORAGE.fx[eff] then return end
+    STORAGE.fx[eff] = { Enabled = safeGetProp(eff, "Enabled") }
+end
+
+local function storeLighting()
+    if next(STORAGE.lighting) then return end
+    STORAGE.lighting = {
+        GlobalShadows = safeGetProp(Lighting, "GlobalShadows"),
+        Brightness = safeGetProp(Lighting, "Brightness"),
+        Ambient = safeGetProp(Lighting, "Ambient"),
+        FogEnd = safeGetProp(Lighting, "FogEnd"),
+        ClockTime = safeGetProp(Lighting, "ClockTime")
+    }
+    -- store certain effects if exist
+    for _,c in pairs(Lighting:GetChildren()) do
+        local class = c.ClassName
+        if class == "ColorCorrectionEffect" or class == "BlurEffect"
+           or class == "SunRaysEffect" or class == "BloomEffect"
+           or class == "DepthOfFieldEffect" then
+            storeFxProps(c)
+        end
+    end
+end
+
+local function storeSettings()
+    if next(STORAGE.settings or {}) then return end
+    STORAGE.settings.RenderingQuality = pcall(function() return settings().Rendering.QualityLevel end) and settings().Rendering.QualityLevel or nil
+    STORAGE.settings.StreamingMinRadius = Workspace.StreamingMinRadius
+    STORAGE.settings.StreamingTargetRadius = Workspace.StreamingTargetRadius
+    STORAGE.settings.CameraFOV = cam and cam.FieldOfView or nil
+end
+
+-- apply functions
+local function applyExtreme()
+    -- store
+    storeLighting()
+    storeSettings()
+
+    -- Lighting extreme
+    pcall(function()
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 80
+        Lighting.Brightness = 1
+        Lighting.Ambient = Color3.fromRGB(160,160,160)
+        Lighting.ClockTime = 14
+    end)
+
+    -- remove sky (store ref by name)
+    for _,v in pairs(Lighting:GetChildren()) do
+        if v.ClassName == "Sky" then
+            if not STORAGE.lighting.Skies then STORAGE.lighting.Skies = {} end
+            table.insert(STORAGE.lighting.Skies, v)
+            pcall(function() v:Destroy() end)
+        end
+    end
+
+    -- disable postfx (store previous enabled states already above)
+    for _,v in pairs(Lighting:GetChildren()) do
+        local cls = v.ClassName
+        if cls == "ColorCorrectionEffect" or cls == "SunRaysEffect" or cls == "BlurEffect"
+           or cls == "BloomEffect" or cls == "DepthOfFieldEffect" then
+            pcall(function() v.Enabled = false end)
+        end
+    end
+
+    -- set ultra-low quality
+    pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 end)
+
+    -- streaming tiny radius
+    pcall(function()
+        Workspace.StreamingEnabled = true
+        Workspace.StreamingMinRadius = 12
+        Workspace.StreamingTargetRadius = 24
+    end)
+
+    -- add a heavy blur (fake resolution)
+    pcall(function()
+        if not Lighting:FindFirstChild("UltimatePotato_Mentok_Blur") then
+            local b = Instance.new("BlurEffect")
+            b.Name = "UltimatePotato_Mentok_Blur"
+            b.Size = 18
+            b.Parent = Lighting
+            STORAGE.lighting.Blur = b
+        else
+            local b = Lighting:FindFirstChild("UltimatePotato_Mentok_Blur")
+            b.Size = 18
+        end
+    end)
+
+    -- camera FOV low
+    pcall(function()
+        if cam then
+            cam.FieldOfView = tonumber(STORAGE.settings.CameraFOV and STORAGE.settings.CameraFOV or 70) or 70
+            cam.FieldOfView = math.clamp(60, 45, 120) and 60 or 60 -- force 60
+        end
+    end)
+
+    -- iterate workspace and apply aggressive transforms
+    for _,inst in pairs(Workspace:GetDescendants()) do
+        -- Parts
+        if inst:IsA("BasePart") then
+            pcall(function()
+                storePartProps(inst)
+                inst.Material = Enum.Material.Plastic
+                inst.Reflectance = 0
+                inst.CastShadow = false
+                -- make transparent a little to reduce pixel fill (but keep local player visible)
+                if inst:IsDescendantOf(localPlayer.Character) then
+                    -- keep local player parts visible; do not hide
+                else
+                    inst.Transparency = math.max(inst.Transparency, 0) -- keep as-is (we don't full hide parts)
+                    inst.CanCollide = false
+                end
+            end)
+        end
+
+        -- Decals & Textures
+        if inst:IsA("Decal") or inst:IsA("Texture") then
+            pcall(function()
+                storeDecalProps(inst)
+                inst.Transparency = 1
+            end)
+        end
+
+        -- Particle-like
+        if inst:IsA("ParticleEmitter") or inst:IsA("Beam") or inst:IsA("Trail") or inst:IsA("Smoke") or inst:IsA("Fire") then
+            pcall(function()
+                storeFxProps(inst)
+                inst.Enabled = false
+            end)
+        end
+
+        -- Meshes: try to reduce complexity by setting Scale small (if SpecialMesh)
+        if inst:IsA("SpecialMesh") then
+            pcall(function()
+                if not STORAGE.parts[inst] then STORAGE.parts[inst] = {} end
+                -- store scale
+                if not STORAGE.parts[inst].MeshScale then
+                    STORAGE.parts[inst].MeshScale = safeGetProp(inst, "Scale")
+                end
+                inst.Scale = Vector3.new(0.85,0.85,0.85)
+            end)
+        end
+
+        -- MeshPart: force material / reflectance
+        if inst:IsA("MeshPart") then
+            pcall(function()
+                storePartProps(inst)
+                inst.Material = Enum.Material.Plastic
+                inst.Reflectance = 0
+                inst.CastShadow = false
+            end)
+        end
+    end
+
+    -- hide other players (transparent + no collisions) and detach accessories locally (store to restore)
+    for _,plr in pairs(Players:GetPlayers()) do
+        if plr ~= localPlayer then
+            local char = plr.Character
+            if char then
+                if not STORAGE.players[plr] then STORAGE.players[plr] = {parts = {}, accessories = {}} end
+                -- store and modify parts
+                for _,p in pairs(char:GetDescendants()) do
+                    if p:IsA("BasePart") then
+                        local prev = {
+                            Transparency = safeGetProp(p, "Transparency"),
+                            CanCollide = safeGetProp(p, "CanCollide"),
+                            LocalTransparencyModifier = safeGetProp(p, "LocalTransparencyModifier")
+                        }
+                        table.insert(STORAGE.players[plr].parts, {p, prev})
+                        p.Transparency = 1
+                        p.CanCollide = false
+                        p.LocalTransparencyModifier = 1
+                        -- also disable shadows on their parts
+                        p.CastShadow = false
+                    end
+                    -- accessories
+                    if p:IsA("Accessory") then
+                        table.insert(STORAGE.players[plr].accessories, p)
+                        -- detach locally by parenting to ServerStorage if available; otherwise set Parent to nil (local)
+                        pcall(function()
+                            p.Parent = nil
+                        end)
+                    end
+                end
+            end
+        end
+    end
+
+    -- repeatedly enforce heavy mode for objects that may respawn/recreate
+    if not applyLoop then
+        applyLoop = RunService.Heartbeat:Connect(function()
+            if not keepApplying then return end
+            -- re-apply quick passes: particles, decals, other players' parts
+            for _,inst in pairs(Workspace:GetDescendants()) do
+                pcall(function()
+                    if inst:IsA("ParticleEmitter") or inst:IsA("Beam") or inst:IsA("Trail") or inst:IsA("Smoke") or inst:IsA("Fire") then
+                        inst.Enabled = false
+                    end
+                    if inst:IsA("Decal") or inst:IsA("Texture") then
+                        inst.Transparency = 1
+                    end
+                    if inst:IsA("BasePart") and not inst:IsDescendantOf(localPlayer.Character) then
+                        inst.CastShadow = false
+                        inst.Reflectance = 0
+                        inst.Material = Enum.Material.Plastic
+                    end
+                end)
+            end
+            -- ensure other players remain hidden
+            for plr,dat in pairs(STORAGE.players) do
+                if plr.Character then
+                    for _,entry in pairs(dat.parts) do
+                        local part = entry[1]
+                        pcall(function()
+                            if part and part.Parent then
+                                part.Transparency = 1
+                                part.CanCollide = false
+                                part.LocalTransparencyModifier = 1
+                                part.CastShadow = false
+                            end
+                        end)
+                    end
+                end
+            end
+        end)
+    end
+
+    keepApplying = true
+end
+
+local function restoreAll()
+    keepApplying = false
+
+    if applyLoop then
+        applyLoop:Disconnect()
+        applyLoop = nil
+    end
+
+    -- restore players
+    for plr,dat in pairs(STORAGE.players) do
+        -- restore parts
+        for _,entry in pairs(dat.parts) do
+            local part = entry[1]
+            local props = entry[2]
+            pcall(function()
+                if part and part.Parent then
+                    if props.Transparency ~= nil then part.Transparency = props.Transparency end
+                    if props.CanCollide ~= nil then part.CanCollide = props.CanCollide end
+                    if props.LocalTransparencyModifier ~= nil then part.LocalTransparencyModifier = props.LocalTransparencyModifier end
+                end
+            end)
+        end
+        -- restore accessories (put them back into character)
+        for _,acc in pairs(dat.accessories) do
+            pcall(function()
+                if acc and acc.Parent == nil and plr.Character then
+                    acc.Parent = plr.Character
+                end
+            end)
+        end
+    end
+
+    -- restore parts
+    for part,props in pairs(STORAGE.parts) do
+        pcall(function()
+            if part and part.Parent then
+                if props.Material then part.Material = props.Material end
+                if props.Reflectance ~= nil then part.Reflectance = props.Reflectance end
+                if props.CastShadow ~= nil then part.CastShadow = props.CastShadow end
+                if props.Transparency ~= nil then part.Transparency = props.Transparency end
+                if props.CanCollide ~= nil then part.CanCollide = props.CanCollide end
+                if props.MeshScale then
+                    if part:IsA("SpecialMesh") then
+                        part.Scale = props.MeshScale
+                    end
+                end
+            end
+        end)
+    end
+
+    -- restore decals
+    for dec,props in pairs(STORAGE.decals) do
+        pcall(function()
+            if dec and dec.Parent then
+                if props.Transparency ~= nil then dec.Transparency = props.Transparency end
+            end
+        end)
+    end
+
+    -- restore fx
+    for fx,props in pairs(STORAGE.fx) do
+        pcall(function()
+            if fx and fx.Parent then
+                if props.Enabled ~= nil then fx.Enabled = props.Enabled end
+            end
+        end)
+    end
+
+    -- restore lighting
+    pcall(function()
+        if STORAGE.lighting.GlobalShadows ~= nil then Lighting.GlobalShadows = STORAGE.lighting.GlobalShadows end
+        if STORAGE.lighting.FogEnd ~= nil then Lighting.FogEnd = STORAGE.lighting.FogEnd end
+        if STORAGE.lighting.Brightness ~= nil then Lighting.Brightness = STORAGE.lighting.Brightness end
+        if STORAGE.lighting.Ambient ~= nil then Lighting.Ambient = STORAGE.lighting.Ambient end
+        if STORAGE.lighting.ClockTime ~= nil then Lighting.ClockTime = STORAGE.lighting.ClockTime end
+        -- remove our blur if present
+        local b = Lighting:FindFirstChild("UltimatePotato_Mentok_Blur")
+        if b then pcall(function() b:Destroy() end) end
+        -- restore any fx states saved earlier
+        for fx,props in pairs(STORAGE.fx) do
+            if fx and fx.Parent and props.Enabled ~= nil then
+                pcall(function() fx.Enabled = props.Enabled end)
+            end
+        end
+        -- try to recreate skies we stored? We stored references (destroyed), so cannot recreate reliably.
+    end)
+
+    -- restore settings
+    pcall(function()
+        if STORAGE.settings.RenderingQuality then
+            settings().Rendering.QualityLevel = STORAGE.settings.RenderingQuality
+        else
+            settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
+        end
+        if STORAGE.settings.StreamingMinRadius then Workspace.StreamingMinRadius = STORAGE.settings.StreamingMinRadius end
+        if STORAGE.settings.StreamingTargetRadius then Workspace.StreamingTargetRadius = STORAGE.settings.StreamingTargetRadius end
+        if STORAGE.settings.CameraFOV and cam then cam.FieldOfView = STORAGE.settings.CameraFOV end
+    end)
+
+    -- clear storage (keep it for possible next toggle)
+    STORAGE = { parts = {}, decals = {}, fx = {}, players = {}, lighting = {}, settings = {} }
+end
+
+-- GUI
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = GUI_NAME
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0,240,0,180)
+frame.Position = UDim2.new(0.5,-120,0.08,0)
+frame.AnchorPoint = Vector2.new(0.5,0)
+frame.BackgroundColor3 = Color3.fromRGB(24,24,24)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1,0,0,30)
+title.Position = UDim2.new(0,0,0,0)
+title.BackgroundTransparency = 1
+title.Text = "ULTIMATE POTATO - MENTOK"
+title.TextScaled = true
+title.TextColor3 = Color3.fromRGB(255,255,255)
+
+local btn = Instance.new("TextButton", frame)
+btn.Size = UDim2.new(0.95,0,0,36)
+btn.Position = UDim2.new(0.025,0,0,38)
+btn.Text = "ENGAGE MENTOK"
+btn.TextScaled = true
+btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+btn.TextColor3 = Color3.fromRGB(255,255,255)
+
+local restoreBtn = Instance.new("TextButton", frame)
+restoreBtn.Size = UDim2.new(0.95,0,0,26)
+restoreBtn.Position = UDim2.new(0.025,0,0,86)
+restoreBtn.Text = "RESTORE"
+restoreBtn.TextScaled = true
+restoreBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+restoreBtn.TextColor3 = Color3.fromRGB(255,255,255)
+
+local labelFOV = Instance.new("TextLabel", frame)
+labelFOV.Size = UDim2.new(0.6,0,0,20)
+labelFOV.Position = UDim2.new(0.02,0,0,120)
+labelFOV.BackgroundTransparency = 1
+labelFOV.Text = "FOV (45-90)"
+labelFOV.TextScaled = true
+labelFOV.TextColor3 = Color3.fromRGB(200,200,200)
+
+local fovBox = Instance.new("TextBox", frame)
+fovBox.Size = UDim2.new(0.32,0,0,20)
+fovBox.Position = UDim2.new(0.66,0,0,120)
+fovBox.Text = "60"
+fovBox.ClearTextOnFocus = false
+fovBox.BackgroundColor3 = Color3.fromRGB(45,45,45)
+fovBox.TextColor3 = Color3.fromRGB(255,255,255)
+
+local autoLabel = Instance.new("TextLabel", frame)
+autoLabel.Size = UDim2.new(0.6,0,0,20)
+autoLabel.Position = UDim2.new(0.02,0,0,145)
+autoLabel.BackgroundTransparency = 1
+autoLabel.Text = "Auto re-apply"
+autoLabel.TextScaled = true
+autoLabel.TextColor3 = Color3.fromRGB(200,200,200)
+
+local autoToggle = Instance.new("TextButton", frame)
+autoToggle.Size = UDim2.new(0.32,0,0,20)
+autoToggle.Position = UDim2.new(0.66,0,0,145)
+autoToggle.Text = "ON"
+autoToggle.BackgroundColor3 = Color3.fromRGB(0,150,0)
+autoToggle.TextColor3 = Color3.fromRGB(255,255,255)
+
+-- connections
+btn.MouseButton1Click:Connect(function()
+    if not boosted then
+        -- set desired FOV
+        local fovVal = tonumber(fovBox.Text) or 60
+        if cam then
+            pcall(function() cam.FieldOfView = math.clamp(fovVal, 45, 90) end)
+        end
+        -- store current to STORAGE
+        storeSettings()
+        storeLighting()
+        applyExtreme()
+        boosted = true
+        btn.Text = "MENTOK: ON"
+        btn.BackgroundColor3 = Color3.fromRGB(0,160,0)
+    else
+        -- already on, toggle to stronger reapply (just reinforce)
+        applyExtreme()
+    end
+end)
+
+restoreBtn.MouseButton1Click:Connect(function()
+    if boosted then
+        restoreAll()
+        boosted = false
+        btn.Text = "ENGAGE MENTOK"
+        btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    else
+        restoreAll()
+    end
+end)
+
+autoToggle.MouseButton1Click:Connect(function()
+    if autoToggle.Text == "ON" then
+        autoToggle.Text = "OFF"
+        autoToggle.BackgroundColor3 = Color3.fromRGB(150,0,0)
+        keepApplying = false
+    else
+        autoToggle.Text = "ON"
+        autoToggle.BackgroundColor3 = Color3.fromRGB(0,150,0)
+        keepApplying = true
+    end
+end)
+
+-- cleanup on character/leave
+local function onLeave()
+    restoreAll()
+    if gui and gui.Parent then gui:Destroy() end
+end
+
+Players.AncestryChanged:Connect(function()
+    -- noop
+end)
+
+-- ensure restore on script end / teleport / exit
+local success, _ = pcall(function()
+    game:BindToClose(function()
+        restoreAll()
+    end)
+end)
